@@ -327,6 +327,19 @@ for EXT_MOD in ${EXT_MODULES}; do
       break
     fi
   done
+
+  set +e
+  grep_string='vendor/oplus'
+  oplus_kernel_module=$(echo ${module_path} | grep "${grep_string}")
+  echo "oplus_kernel_module is  $oplus_kernel_module"
+  if [[ "${oplus_kernel_module}" != "" ]]
+  then
+      echo "$grep_string is in $module_path default check bazel build "
+  else
+      echo "$grep_string in not in $module_path use default"
+  fi
+  set -e
+
   if [[ "$TARGET_BOARD_PLATFORM" = "gen4" ||
 	  "$TARGET_BOARD_PLATFORM" = "gen5" ]]; then
      btgt="autogvm"
@@ -349,7 +362,7 @@ for EXT_MOD in ${EXT_MODULES}; do
   fi
 
   # Query for a target that matches the pattern for module distribution
-  if [ "$ENABLE_DDK_BUILD" = "true" ] \
+  if [ "$ENABLE_DDK_BUILD" = "true" || "$oplus_kernel_module" != "" ]] \
      && [ -n "$pkg_path" ] \
      && [ -n "$btgt" ] \
      && build_target=$(./tools/bazel query --ui_event_filters=-info --noshow_progress \
@@ -382,9 +395,21 @@ for EXT_MOD in ${EXT_MODULES}; do
       build_flags+=("${extra_args[@]}")
     fi
 
+    if [ "$KERNEL_SANITIZER" == "kasan" ]; then
+        build_flags+=("--kasan_generic")
+        build_flags+=("--lto=none")
+    elif [ "$KERNEL_SANITIZER" == "kcsan" ]; then
+        build_flags+=("--kcsan")
+        build_flags+=("--lto=none")
+    fi
+
+    if [ "$KERNEL_SANITIZER" == "ubsan" ]; then
+        build_flags+=("--ubsan")
+        build_flags+=("--lto=none")
+    fi
     # Run the dist command passing in the output directory from Android build system
     ./tools/bazel --output_user_root="${DEFAULT_CACHE_DIR}" run "${build_flags[@]}" \
-      "$build_target" -- --destdir="${OUT_DIR}/${EXT_MOD_REL}"
+      "$build_target" -- --dist_dir="${OUT_DIR}/${EXT_MOD_REL}"
 
     # The Module.symvers file is named "<target>_<variant>_Modules.symvers, but other modules are
     # looking for just "Module.symvers". Concatenate any of them into one Module.symvers file.

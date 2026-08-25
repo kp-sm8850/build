@@ -1086,3 +1086,8 @@ config_setting(
     name = "socrepo_true",
     flag_values = {":socrepo": "true"},
 )
+
+#martin.li add for check platform is mtk or qcom
+string_flag(name = "oplus_platform_name" , build_setting_default = "mtk")
+config_setting(name = "oplus_platform_name_mtk"     , flag_values = {":oplus_platform_name": "mtk"})
+config_setting(name = "oplus_platform_name_qcom"     , flag_values = {":oplus_platform_name": "qcom"})
